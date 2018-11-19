@@ -2,14 +2,19 @@
 (require 'request)
 (require 'json)
 
+;; TODO Check if anki is running before doing anything
+
 ;; https://github.com/louietan/anki-editor/blob/master/anki-editor.el
 ;; https://github.com/glutanimate/anki-connect
 
+;; Elisp help
+;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html#Using-Interactive
+
 (defun anki--mk-action (action &optional params)
-   (let ((ls '()))
-     (when params
-       (push `(params . ,params) ls))
-     (push `(action . ,action) ls)))
+  (let ((ls '()))
+    (when params
+      (push `(params . ,params) ls))
+    (push `(action . ,action) ls)))
 
 (defun anki--mk-params (deck model front back &rest tags)
   `((note . ((deckName . ,deck)
@@ -52,7 +57,7 @@
               "addNote"
               (anki--mk-params "AWS" "Basic" "front" "back" "networking")))))
   (message body)
-  (message "%S" (anki--send body))
-  )
+  (message "%S" (anki--send body)))
+
 
 
