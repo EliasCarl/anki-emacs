@@ -14,6 +14,10 @@
 ;; (buffer-substring begin end)
 ;; (filter-buffer-substring begin end)
 ;; http://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html
+;; https://stackoverflow.com/questions/9617183/how-to-find-which-file-provided-the-feature-in-emacs-elisp/9620373#9620373
+;; https://stackoverflow.com/questions/9646088/emacs-interactive-commands-with-default-value
+;; (thing-at-point)
+;; (read-string)
 
 (defun anki--mk-action (action &optional params)
   (let ((ls '()))
@@ -57,7 +61,11 @@
   (message "%S" (buffer-substring-no-properties beg end)))
 
 (defun anki-emacs--input-test (deck front back)
-  (interactive "sDeck: \nsFront: \nsBack:")
+  (interactive
+   (let ((line (thing-at-point 'line t)))
+     (list (read-string (format "Deck (%s): " line) nil nil line)
+	   "front"
+	   "back")))
   (message "%S %S %S" deck front back))
 
 (json-encode
