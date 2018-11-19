@@ -10,6 +10,11 @@
 ;; Elisp help
 ;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html#Using-Interactive
 
+;; See emacs simple.el kill-region implementation for reference
+;; (buffer-substring begin end)
+;; (filter-buffer-substring begin end)
+;; http://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html
+
 (defun anki--mk-action (action &optional params)
   (let ((ls '()))
     (when params
@@ -46,6 +51,14 @@
       ;; If the action does not exist anki connect may respond with just null
       (error "Error from anki connect: %S" err))
     res))
+
+(defun anki-emacs--test (beg end)
+  (interactive "r")
+  (message "%S" (buffer-substring-no-properties beg end)))
+
+(defun anki-emacs--input-test (deck front back)
+  (interactive "sDeck: \nsFront: \nsBack:")
+  (message "%S %S %S" deck front back))
 
 (json-encode
  (anki--mk-action
