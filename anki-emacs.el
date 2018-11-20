@@ -60,12 +60,23 @@
   (interactive "r")
   (message "%S" (buffer-substring-no-properties beg end)))
 
-(defun anki-emacs--input-test (deck front back)
+;; The region is the text between the point and the mark
+(defun anki-emacs--create-card-region (deck front back)
+  (interactive
+   (let ((text (buffer-substring-no-properties
+		(region-beginning)
+		(region-end))))
+     (list (read-string "deck: " nil nil "")
+	   (read-string "front: " nil nil "")
+	   (read-string (format "back (%s): " text) nil nil text))))
+  (message "%S %S %S" deck front back))
+
+(defun anki-emacs--create-card-line (deck front back)
   (interactive
    (let ((line (thing-at-point 'line t)))
-     (list (read-string (format "Deck (%s): " line) nil nil line)
-	   "front"
-	   "back")))
+     (list (read-string "deck: " nil nil "")
+	   (read-string "front: " nil nil "")
+	   (read-string "back (%s): " line) nil nil line)))
   (message "%S %S %S" deck front back))
 
 (json-encode
