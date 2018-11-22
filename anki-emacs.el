@@ -75,10 +75,6 @@
       (error "Error from anki connect: %S" err))
     res))
 
-(defun eanki--test (beg end)
-  (interactive "r")
-  (message "%S" (buffer-substring-no-properties beg end)))
-
 ;; The region is the text between the point and the mark
 (defun eanki--create-card-region (deck front back)
   (interactive
