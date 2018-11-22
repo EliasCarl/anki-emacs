@@ -19,24 +19,46 @@
 ;; (thing-at-point)
 ;; (read-string)
 
-(defun anki--mk-action (action &optional params)
+(defun eanki--mk-action (action &optional params)
   (let ((ls '()))
     (when params
       (push `(params . ,params) ls))
     (push `(action . ,action) ls)))
 
-(defun anki--mk-params (deck model front back &rest tags)
+(defun eanki--mk-params (model deck front back &rest tags)
   `((note . ((deckName . ,deck)
               (modelName . ,model)
               (fields . ((Front . ,front)
                          (Back . ,back)))
-              (tags . ,tags)))))
+             (tags . ,tags)))))
+
+(defun eanki--current-deck ()
+  (save-excursion
+    (goto-char (point-min))
+    (buffer-substring-no-properties
+     (line-beginning-position)
+     (line-end-position))))
+
+(defun eanki--add-basic (deck front back tag &rest tags)
+  (interactive
+   (let ((text (buffer-substring-no-properties
+                (region-beginning)
+                (region-end))))
+     (list (read-string (format "deck (%s): " (anki--current-deck)) nil nil (anki--current-deck))
+           (read-string "front: " nil nil "")
+           (read-string (format "back (%s): " text) nil nil text)
+           (read-string "tag: " nil nil))))
+  (let ((body (json-encode
+               (anki--mk-action
+                "addNote"
+                (anki--mk-params "Basic" deck front back tag)))))
+    (message "%S" (anki--send body))))
 
 (json-encode
  (anki--mk-params "aws" "Basic" "front" "back" "tag1"))
 
 ;; http://tkf.github.io/emacs-request/manual.html
-(defun anki--send (body)
+(defun eanki--send (body)
   (let ((res nil)
         (err nil))
     (request
@@ -56,12 +78,12 @@
       (error "Error from anki connect: %S" err))
     res))
 
-(defun anki-emacs--test (beg end)
+(defun eanki--test (beg end)
   (interactive "r")
   (message "%S" (buffer-substring-no-properties beg end)))
 
 ;; The region is the text between the point and the mark
-(defun anki-emacs--create-card-region (deck front back)
+(defun eanki--create-card-region (deck front back)
   (interactive
    (let ((text (buffer-substring-no-properties
 		(region-beginning)
@@ -71,25 +93,11 @@
 	   (read-string (format "back (%s): " text) nil nil text))))
   (message "%S %S %S" deck front back))
 
-(defun anki-emacs--create-card-line (deck front back)
+(defun eanki--create-card-line (deck front back)
   (interactive
    (let ((line (thing-at-point 'line t)))
      (list (read-string "deck: " nil nil "")
 	   (read-string "front: " nil nil "")
 	   (read-string "back (%s): " line) nil nil line)))
   (message "%S %S %S" deck front back))
-
-(json-encode
- (anki--mk-action
-  "addNote"
-  (anki--mk-params "aws" "basic" "front" "back" "tag1" "tag2")))
-
-(let ((body (json-encode
-             (anki--mk-action
-              "addNote"
-              (anki--mk-params "AWS" "Basic" "front" "back" "networking")))))
-  (message body)
-  (message "%S" (anki--send body)))
-
-
 
