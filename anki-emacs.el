@@ -18,6 +18,11 @@
 ;; https://stackoverflow.com/questions/9646088/emacs-interactive-commands-with-default-value
 ;; (thing-at-point)
 ;; (read-string)
+;; (org-element-at-point)
+;; org-export-to-buffer
+;; https://orgmode.org/manual/Exporting.html#Exporting
+;; org-html-export-as-html
+
 
 (defun eanki--mk-action (action &optional params)
   (let ((ls '()))
@@ -25,7 +30,7 @@
       (push `(params . ,params) ls))
     (push `(action . ,action) ls)))
 
-(defun eanki--mk-params (model deck front back &rest tags)
+(defun eanki--mk-params (model deck front back &optional tags)
   `((note . ((deckName . ,deck)
               (modelName . ,model)
               (fields . ((Front . ,front)
@@ -43,26 +48,31 @@
   (message
    (replace-regexp-in-string "\n" "<br>" str)))
 
-(defun eanki--add-basic (deck front back tag &rest tags)
+(defun eanki--org-to-html ()
+  (interactive)
+  (unless (org-region-active-p) (user-error "No active region to replace"))
+  (let ((region (buffer-substring-no-properties (region-beginning) (region-end))))
+    (org-export-string-as region 'html t)))
+
+(defun eanki--add-basic (deck front back tags)
   (interactive
-   (let ((text (buffer-substring-no-properties
-                (region-beginning)
-                (region-end))))
-     (list (read-string (format "deck (%s): " (eanki--current-deck)) nil nil (eanki--current-deck))
+   (let* ((text (buffer-substring-no-properties
+                 (region-beginning)
+                 (region-end)))
+          (current-deck (eanki--current-deck)))
+     (list (read-string (format "deck (%s): " current-deck) nil nil current-deck)
            (read-string "front: " nil nil "")
-           (read-string (format "back (%s): " text) nil nil text)
-           (read-string "tag: " nil nil))))
+           (read-string (format "back (%s): " text) nil nil (org-export-string-as text 'html t))
+           (read-string "tags: " nil nil ""))))
   (let ((body (json-encode
                (eanki--mk-action
                 "addNote"
                 (eanki--mk-params "Basic"
                                   deck
                                   front
-                                  (eanki--html-linebreaks back)
-                                  tag)))))
-    (message body)
-    (message (eanki--send body))
-    ))
+                                  back
+                                  (split-string tags))))))
+    (message (eanki--send body))))
 
 ;; http://tkf.github.io/emacs-request/manual.html
 (defun eanki--send (body)
@@ -100,7 +110,7 @@
   (interactive
    (let ((line (thing-at-point 'line t)))
      (list (read-string "deck: " nil nil "")
-	   (read-string "front: " nil nil "")
-	   (read-string "back (%s): " line) nil nil line)))
+           (read-string "front: " nil nil "")
+           (read-string "back (%s): " line) nil nil line)))
   (message "%S %S %S" deck front back))
 
