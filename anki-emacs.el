@@ -44,7 +44,7 @@
    (let ((text (buffer-substring-no-properties
                 (region-beginning)
                 (region-end))))
-     (list (read-string (format "deck (%s): " (anki--current-deck)) nil nil (anki--current-deck))
+     (list (read-string (format "deck (%s): " (eanki--current-deck)) nil nil (eanki--current-deck))
            (read-string "front: " nil nil "")
            (read-string (format "back (%s): " text) nil nil text)
            (read-string "tag: " nil nil))))
@@ -52,7 +52,7 @@
                (eanki--mk-action
                 "addNote"
                 (eanki--mk-params "Basic" deck front back tag)))))
-    (message "%S" (anki--send body))))
+    (message "%S" (eanki--send body))))
 
 ;; http://tkf.github.io/emacs-request/manual.html
 (defun eanki--send (body)
