@@ -39,6 +39,10 @@
      (line-beginning-position)
      (line-end-position))))
 
+(defun eanki--html-linebreaks (str)
+  (message
+   (replace-regexp-in-string "\n" "<br>" str)))
+
 (defun eanki--add-basic (deck front back tag &rest tags)
   (interactive
    (let ((text (buffer-substring-no-properties
@@ -51,8 +55,14 @@
   (let ((body (json-encode
                (eanki--mk-action
                 "addNote"
-                (eanki--mk-params "Basic" deck front back tag)))))
-    (message "%S" (eanki--send body))))
+                (eanki--mk-params "Basic"
+                                  deck
+                                  front
+                                  (eanki--html-linebreaks back)
+                                  tag)))))
+    (message body)
+    (message (eanki--send body))
+    ))
 
 ;; http://tkf.github.io/emacs-request/manual.html
 (defun eanki--send (body)
