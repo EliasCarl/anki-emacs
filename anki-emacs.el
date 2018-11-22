@@ -49,13 +49,10 @@
            (read-string (format "back (%s): " text) nil nil text)
            (read-string "tag: " nil nil))))
   (let ((body (json-encode
-               (anki--mk-action
+               (eanki--mk-action
                 "addNote"
-                (anki--mk-params "Basic" deck front back tag)))))
+                (eanki--mk-params "Basic" deck front back tag)))))
     (message "%S" (anki--send body))))
-
-(json-encode
- (anki--mk-params "aws" "Basic" "front" "back" "tag1"))
 
 ;; http://tkf.github.io/emacs-request/manual.html
 (defun eanki--send (body)
