@@ -6,6 +6,7 @@
 
 ;; https://github.com/louietan/anki-editor/blob/master/anki-editor.el
 ;; https://github.com/glutanimate/anki-connect
+;; https://foosoft.net/projects/anki-connect/
 
 ;; Elisp help
 ;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html#Using-Interactive
@@ -23,8 +24,9 @@
 ;; https://orgmode.org/manual/Exporting.html#Exporting
 ;; org-html-export-as-html
 
-
 (defun eanki--mk-action (action &optional params)
+  "Create an association list to be json-encoded and sent to anki
+   over anki-connect."
   (let ((ls '()))
     (when params
       (push `(params . ,params) ls))
@@ -54,16 +56,53 @@
   (let ((region (buffer-substring-no-properties (region-beginning) (region-end))))
     (org-export-string-as region 'html t)))
 
+(defun eanki--read-tagstring ()
+  (let ((tags (buffer-substring-no-properties
+               (line-beginning-position)
+               (line-end-position))))
+    (if (string-prefix-p "anki-tags:" tags)
+        (cadr (split-string tags ":"))
+      "")))
+
+(defun eanki--read-current-level-tags ()
+  (save-excursion
+    (org-previous-visible-heading 1)
+    (forward-line)
+    (eanki--read-tagstring)))
+
+(defun eanki--read-parents-level-tags ()
+  (save-excursion
+    ;; Change to "org-up-heading-safe", should be faster
+    (if (ignore-errors (outline-up-heading 1))
+        (progn
+          (forward-line)
+          (concat (eanki--read-tagstring)
+                  ","
+                  (eanki--read-parents-level-tags)))
+      "")))
+
+(defun eanki--read-default-tags ()
+  "Read default tags as first line in each org mode level."
+  (concat (eanki--read-current-level-tags)
+          ","
+          (eanki--read-parents-level-tags)))
+
+(defun eanki--read-tags ()
+  (let* ((defaults (eanki--read-default-tags))
+         (other (read-string (format "tags (%s): " defaults) nil nil "")))
+    ;; The variable "defaults" ends with a comma here, ugly but cant be bothered
+    ;; to fix now since it works.
+    (split-string (concat defaults other) ",")))
+
+;; CLEAN UP!!!!!
 (defun eanki--add-basic (deck front back tags)
   (interactive
-   (let* ((text (buffer-substring-no-properties
-                 (region-beginning)
-                 (region-end)))
+   (let* ((text (buffer-substring-no-properties (region-beginning) (region-end)))
           (current-deck (eanki--current-deck)))
      (list (read-string (format "deck (%s): " current-deck) nil nil current-deck)
            (read-string "front: " nil nil "")
            (read-string (format "back (%s): " text) nil nil (org-export-string-as text 'html t))
-           (read-string "tags: " nil nil ""))))
+           (eanki--read-tags))))
   (let ((body (json-encode
                (eanki--mk-action
                 "addNote"
@@ -71,7 +110,7 @@
                                   deck
                                   front
                                   back
-                                  (split-string tags))))))
+                                  tags)))))
     (message (eanki--send body))))
 
 ;; http://tkf.github.io/emacs-request/manual.html
