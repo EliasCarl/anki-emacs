@@ -111,10 +111,20 @@
                                   front
                                   back
                                   tags)))))
-    (message (eanki--send body))))
+    ;; Cant message here, if so add-basic-words will not work.
+    (eanki--send body)))
+
+(defun eanki--add-basic-words (deck text)
+  (interactive
+   (let* ((text (buffer-substring-no-properties (region-beginning) (region-end)))
+          (current-deck (eanki--current-deck)))
+     (list (read-string (format "deck (%s): " current-deck) nil nil current-deck) text)))
+  (dolist (word (delete "" (split-string text "\n")))
+    (eanki--add-basic deck word word (list "words" ""))))
 
 ;; http://tkf.github.io/emacs-request/manual.html
 (defun eanki--send (body)
+  (print body)
   (let ((res nil)
         (err nil))
     (request
@@ -122,7 +132,7 @@
      :type "POST"
      :data (encode-coding-string body 'utf-8)
      :parser 'json-read
-     :sync t
+     :sync 't
      :success (function*
                (lambda (&key data &allow-other-keys)
                 (setq res data)))
