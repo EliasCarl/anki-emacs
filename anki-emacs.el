@@ -1,6 +1,7 @@
 (require 'dash)
 (require 'request)
 (require 'json)
+(require 'cl)
 
 ;; TODO Check if anki is running before doing anything
 
@@ -30,14 +31,14 @@
   (let ((ls '()))
     (when params
       (push `(params . ,params) ls))
-    (push `(action . ,action) ls)))
+    (push `(action . ,action) ls)
+    (push `(version . "6") ls)))
 
 (defun eanki--mk-params (model deck front back &optional tags)
   `((note . ((deckName . ,deck)
               (modelName . ,model)
               (fields . ((Front . ,front)
-                         (Back . ,back)))
-             (tags . ,tags)))))
+                         (Back . ,back)))))))
 
 (defun eanki--current-deck ()
   (save-excursion
@@ -55,6 +56,8 @@
   (unless (org-region-active-p) (user-error "No active region to replace"))
   (let ((region (buffer-substring-no-properties (region-beginning) (region-end))))
     (org-export-string-as region 'html t)))
+
+;; -- Finding tags -----------------------------------------
 
 (defun eanki--read-tagstring ()
   (let ((tags (buffer-substring-no-properties
@@ -94,33 +97,7 @@
     ;; to fix now since it works.
     (split-string (concat defaults other) ",")))
 
-;; CLEAN UP!!!!!
-(defun eanki--add-basic (deck front back tags)
-  (interactive
-   (let* ((text (buffer-substring-no-properties (region-beginning) (region-end)))
-          (current-deck (eanki--current-deck)))
-     (list (read-string (format "deck (%s): " current-deck) nil nil current-deck)
-           (read-string "front: " nil nil "")
-           (read-string (format "back (%s): " text) nil nil (org-export-string-as text 'html t))
-           (eanki--read-tags))))
-  (let ((body (json-encode
-               (eanki--mk-action
-                "addNote"
-                (eanki--mk-params "Basic"
-                                  deck
-                                  front
-                                  back
-                                  tags)))))
-    ;; Cant message here, if so add-basic-words will not work.
-    (eanki--send body)))
-
-(defun eanki--add-basic-words (deck text)
-  (interactive
-   (let* ((text (buffer-substring-no-properties (region-beginning) (region-end)))
-          (current-deck (eanki--current-deck)))
-     (list (read-string (format "deck (%s): " current-deck) nil nil current-deck) text)))
-  (dolist (word (delete "" (split-string text "\n")))
-    (eanki--add-basic deck word word (list "words" ""))))
+;; -- HTTP -------------------------------------------------
 
 ;; http://tkf.github.io/emacs-request/manual.html
 (defun eanki--send (body)
@@ -143,6 +120,39 @@
       ;; If the action does not exist anki connect may respond with just null
       (error "Error from anki connect: %S" err))
     res))
+
+;; -- Creating ---------------------------------------------
+
+(setq eanki--last-deck "")
+
+;; CLEAN UP!!!!!
+(defun eanki--add-basic (deck front back tags)
+  (interactive
+   (let* ((text (buffer-substring-no-properties (region-beginning) (region-end))))
+     (list (read-string (format "deck (%s): " eanki--last-deck) nil nil eanki--last-deck)
+           (read-string "front: " nil nil "")
+           (read-string (format "back (%s): " text) nil nil (org-export-string-as text 'html t))
+           nil
+)))
+  (let ((body (json-encode
+               (eanki--mk-action
+                "addNote"
+                (eanki--mk-params "Basic"
+                                  deck
+                                  front
+                                  back
+                                  tags)))))
+    (setq eanki--last-deck deck)
+    ;; Cant message here, if so add-basic-words will not work.
+    (eanki--send body)))
+
+(defun eanki--add-basic-words (deck text)
+  (interactive
+   (let* ((text (buffer-substring-no-properties (region-beginning) (region-end)))
+          (current-deck (eanki--current-deck)))
+     (list (read-string (format "deck (%s): " current-deck) nil nil current-deck) text)))
+  (dolist (word (delete "" (split-string text "\n")))
+    (eanki--add-basic deck word "" (list "words" ""))))
 
 ;; The region is the text between the point and the mark
 (defun eanki--create-card-region (deck front back)
