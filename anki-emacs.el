@@ -51,6 +51,12 @@
   (message
    (replace-regexp-in-string "\n" "<br>" str)))
 
+(defun eanki--string-clean (str)
+  (replace-regexp-in-string "^- " ""
+			    (replace-regexp-in-string "\n$" "" str)))
+
+(eanki--string-clean "- tjena \n")
+
 (defun eanki--org-to-html ()
   (interactive)
   (unless (org-region-active-p) (user-error "No active region to replace"))
@@ -131,7 +137,7 @@
    (let* ((text (buffer-substring-no-properties (region-beginning) (region-end))))
      (list (read-string (format "deck (%s): " eanki--last-deck) nil nil eanki--last-deck)
            (read-string "front: " nil nil "")
-           (read-string (format "back (%s): " text) nil nil (org-export-string-as text 'html t))
+           (read-string (format "back (%s): " text) nil nil text)
            nil
 )))
   (let ((body (json-encode
@@ -140,7 +146,7 @@
                 (eanki--mk-params "Basic"
                                   deck
                                   front
-                                  back
+                                  (eanki--string-clean back)
                                   tags)))))
     (setq eanki--last-deck deck)
     ;; Cant message here, if so add-basic-words will not work.
